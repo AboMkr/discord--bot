@@ -8,12 +8,25 @@ from dotenv import load_dotenv
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 
+REQUIRED_ROLE = "AboMkr"  # Only members with this role can use the bot
+
 intents = discord.Intents.default()
 intents.message_content = True
 intents.guilds = True
 intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
+
+def has_required_role():
+    async def predicate(interaction: discord.Interaction) -> bool:
+        role = discord.utils.get(interaction.user.roles, name=REQUIRED_ROLE)
+        if role is None:
+            await interaction.response.send_message(
+                f"❌ You need the **{REQUIRED_ROLE}** role to use this bot.", ephemeral=True
+            )
+            return False
+        return True
+    return app_commands.check(predicate)
 
 # ─────────────────────────────────────────
 #  ON READY
@@ -39,6 +52,7 @@ async def on_ready():
     hoist="Show role separately in member list? (True/False)",
     mentionable="Make role mentionable? (True/False)"
 )
+@has_required_role()
 @app_commands.checks.has_permissions(manage_roles=True)
 async def createrole(
     interaction: discord.Interaction,
@@ -63,6 +77,7 @@ async def createrole(
 
 @bot.tree.command(name="deleterole", description="Delete a role by name")
 @app_commands.describe(role="The role to delete")
+@has_required_role()
 @app_commands.checks.has_permissions(manage_roles=True)
 async def deleterole(interaction: discord.Interaction, role: discord.Role):
     await interaction.response.defer(ephemeral=True)
@@ -76,6 +91,7 @@ async def deleterole(interaction: discord.Interaction, role: discord.Role):
 
 @bot.tree.command(name="assignrole", description="Assign a role to a member")
 @app_commands.describe(member="The member to assign the role to", role="The role to assign")
+@has_required_role()
 @app_commands.checks.has_permissions(manage_roles=True)
 async def assignrole(interaction: discord.Interaction, member: discord.Member, role: discord.Role):
     await interaction.response.defer(ephemeral=True)
@@ -88,6 +104,7 @@ async def assignrole(interaction: discord.Interaction, member: discord.Member, r
 
 @bot.tree.command(name="removerole", description="Remove a role from a member")
 @app_commands.describe(member="The member to remove the role from", role="The role to remove")
+@has_required_role()
 @app_commands.checks.has_permissions(manage_roles=True)
 async def removerole(interaction: discord.Interaction, member: discord.Member, role: discord.Role):
     await interaction.response.defer(ephemeral=True)
@@ -99,6 +116,7 @@ async def removerole(interaction: discord.Interaction, member: discord.Member, r
 
 
 @bot.tree.command(name="listroles", description="List all roles in the server")
+@has_required_role()
 async def listroles(interaction: discord.Interaction):
     roles = [r for r in interaction.guild.roles if r.name != "@everyone"]
     if not roles:
@@ -120,6 +138,7 @@ async def listroles(interaction: discord.Interaction):
     category="Category name to put it in (optional)",
     topic="Channel topic/description (text channels only)"
 )
+@has_required_role()
 @app_commands.checks.has_permissions(manage_channels=True)
 async def createchannel(
     interaction: discord.Interaction,
@@ -148,6 +167,7 @@ async def createchannel(
 
 @bot.tree.command(name="deletechannel", description="Delete a channel")
 @app_commands.describe(channel="The channel to delete")
+@has_required_role()
 @app_commands.checks.has_permissions(manage_channels=True)
 async def deletechannel(interaction: discord.Interaction, channel: discord.abc.GuildChannel):
     await interaction.response.defer(ephemeral=True)
@@ -161,6 +181,7 @@ async def deletechannel(interaction: discord.Interaction, channel: discord.abc.G
 
 @bot.tree.command(name="createcategory", description="Create a new category")
 @app_commands.describe(name="Category name")
+@has_required_role()
 @app_commands.checks.has_permissions(manage_channels=True)
 async def createcategory(interaction: discord.Interaction, name: str):
     await interaction.response.defer(ephemeral=True)
@@ -178,6 +199,7 @@ async def createcategory(interaction: discord.Interaction, name: str):
     permission="e.g. send_messages, view_channel, connect",
     allow="True to allow, False to deny"
 )
+@has_required_role()
 @app_commands.checks.has_permissions(manage_channels=True)
 async def setchannelperm(
     interaction: discord.Interaction,
@@ -207,6 +229,7 @@ async def setchannelperm(
 
 @bot.tree.command(name="setupserver", description="Set up server from a JSON template file")
 @app_commands.describe(template="Template name: gaming | community | study | custom")
+@has_required_role()
 @app_commands.checks.has_permissions(administrator=True)
 async def setupserver(interaction: discord.Interaction, template: str = "gaming"):
     await interaction.response.defer(ephemeral=True)
@@ -389,6 +412,7 @@ async def setupserver(interaction: discord.Interaction, template: str = "gaming"
 # ─────────────────────────────────────────
 
 @bot.tree.command(name="serverinfo", description="Show server info summary")
+@has_required_role()
 async def serverinfo(interaction: discord.Interaction):
     g = interaction.guild
     embed = discord.Embed(title=f"🏠 {g.name}", color=0x5865F2)
